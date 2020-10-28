@@ -5,6 +5,150 @@
 
 #include "vedirect.h"
 #include "sensesp.h"
+#include "signalk/signalk_output.h"
+
+// set up a standard sensor for a BMV device (common to BMV600 and BMV700)
+VEDirectInput* setup_vedirect_bmv(Stream* rx_stream, std::string deviceName) {
+  VEDirectInput* vedirect = new VEDirectInput(rx_stream, "/vedirect");
+  std::string prefix = "electrical.batteries.";
+  prefix.append(deviceName);
+  
+  std::string path;
+  
+  path = prefix;
+  path.append(".voltage");
+  vedirect->data.mainVoltage.connect_to(
+    new SKOutputNumber(path.c_str(), ""));
+
+  path = prefix;
+  path.append(".auxvoltage");
+  vedirect->data.auxVoltage.connect_to(
+    new SKOutputNumber(path.c_str(), ""));
+
+  path = prefix;
+  path.append(".current");
+  vedirect->data.batteryCurrent.connect_to(
+    new SKOutputNumber(path.c_str(), ""));
+
+  path = prefix;
+  path.append(".capacity.dischargeSinceFull");
+  vedirect->data.consumedCoulombs.connect_to(
+    new SKOutputNumber(path.c_str(), ""));
+
+  path = prefix;
+  path.append(".capacity.stateOfCharge");
+  vedirect->data.stateOfCharge.connect_to(
+    new SKOutputNumber(path.c_str(), ""));
+
+  path = prefix;
+  path.append(".capacity.timeRemaining");
+  vedirect->data.timeToGo.connect_to(
+    new SKOutputNumber(path.c_str(), ""));
+
+  path = prefix;
+  path.append(".alarm.state");
+  vedirect->data.alarmState.connect_to(
+    new SKOutputInt(path.c_str(), ""));
+
+  path = prefix;
+  path.append(".relay.state");
+  vedirect->data.relayState.connect_to(
+    new SKOutputInt(path.c_str(), ""));
+
+  path = prefix;
+  path.append(".alarm.reason");
+  vedirect->data.alarmReason.connect_to(
+    new SKOutputString(path.c_str(), ""));
+
+  path = prefix;
+  path.append(".statistics.depthOfDeepestDischarge");
+  vedirect->data.depthOfDeepestDischarge.connect_to(
+    new SKOutputNumber(path.c_str(), ""));
+
+  path = prefix;
+  path.append(".statistics.depthOfLastDischarge");
+  vedirect->data.depthOfLastDischarge.connect_to(
+    new SKOutputNumber(path.c_str(), ""));
+
+  path = prefix;
+  path.append(".statistics.depthOfAverageDischarge");
+  vedirect->data.depthOfAverageDischarge.connect_to(
+    new SKOutputNumber(path.c_str(), ""));
+
+  path = prefix;
+  path.append(".statistics.totalChargeCycles");
+  vedirect->data.totalChargeCycles.connect_to(
+    new SKOutputInt(path.c_str(), ""));
+
+  path = prefix;
+  path.append(".statistics.totalFullCycles");
+  vedirect->data.totalFullCycles.connect_to(
+    new SKOutputInt(path.c_str(), ""));
+
+  path = prefix;
+  path.append(".statistics.cumulativeCoulombsDrawn");
+  vedirect->data.cumulativeCoulombsDrawn.connect_to(
+    new SKOutputNumber(path.c_str(), ""));
+
+  path = prefix;
+  path.append(".statistics.minimumMainVoltage");
+  vedirect->data.minimumMainVoltage.connect_to(
+    new SKOutputNumber(path.c_str(), ""));
+
+  path = prefix;
+  path.append(".statistics.maximumMainVoltage");
+  vedirect->data.maximumMainVoltage.connect_to(
+    new SKOutputNumber(path.c_str(), ""));
+
+  path = prefix;
+  path.append(".statistics.timeSinceLastFullCharge");
+  vedirect->data.timeSinceLastFullCharge.connect_to(
+    new SKOutputNumber(path.c_str(), ""));
+
+  path = prefix;
+  path.append(".statistics.totalAutomaticSynchronizations");
+  vedirect->data.totalAutomaticSynchronizations.connect_to(
+    new SKOutputInt(path.c_str(), ""));
+
+  path = prefix;
+  path.append(".statistics.totalLowMainVoltageAlarms");
+  vedirect->data.totalLowMainVoltageAlarms.connect_to(
+    new SKOutputInt(path.c_str(), ""));
+
+  path = prefix;
+  path.append(".statistics.totalHighMainVoltageAlarms");
+  vedirect->data.totalHighMainVoltageAlarms.connect_to(
+    new SKOutputInt(path.c_str(), ""));
+
+  path = prefix;
+  path.append(".statistics.totalHighMainVoltageAlarms");
+  vedirect->data.totalHighMainVoltageAlarms.connect_to(
+    new SKOutputInt(path.c_str(), ""));
+
+  path = prefix;
+  path.append(".statistics.minimumAuxVoltage");
+  vedirect->data.minimumAuxVoltage.connect_to(
+    new SKOutputNumber(path.c_str(), ""));
+
+  path = prefix;
+  path.append(".statistics.maximumAuxVoltage");
+  vedirect->data.maximumAuxVoltage.connect_to(
+    new SKOutputNumber(path.c_str(), ""));
+
+  path = prefix;
+  path.append(".info.modelDescription");
+  vedirect->data.modelDescription.connect_to(
+    new SKOutputString(path.c_str(), ""));
+
+  path = prefix;
+  path.append(".info.firmwareVersion");
+  vedirect->data.firmwareVersion.connect_to(
+    new SKOutputString(path.c_str(), ""));
+
+  return vedirect;
+}
+
+
 
 VEDirectInput::VEDirectInput(Stream* rx_stream, String config_path, byte signalKUnitTransform)
     : Sensor(config_path), mode_signalKUnitTransform(signalKUnitTransform) {
@@ -19,109 +163,109 @@ VEDirectInput::VEDirectInput(Stream* rx_stream, String config_path, byte signalK
   byte ii = 0;
   const byte st = VEDIRECT_VALUE_STATE_UNDEFINED; // to make assignments below shorter
 
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "V",            1, "V",     "", "", 0, st }; // mV; Main (battery) voltage
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "VS",           1, "V",     "", "", 0, st }; // mV; Auxiliary (starter) voltage
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "VM",           1, "V",     "", "", 0, st }; // mV; Mid-point voltage of the battery bank
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "DM",           1, "ratio", "", "", 0, st }; // 1/10 %; Mid-point deviation of the battery bank
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "VPV",          1, "V",     "", "", 0, st }; // mV; Panel voltage
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "PPV",          1, "A",     "", "", 0, st }; // W; Panel power
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "I",            1, "A",     "", "", 0, st }; // mA; Battery current
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "IL",           1, "A",     "", "", 0, st }; // mA; Load current
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "LOAD",        -1, "state", "", "", 0, st }; // Load output state (ON/OFF)
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "T",         -273, "K",     "", "", 0, st }; // °C; Battery temperature
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "P",         1000, "W",     "", "", 0, st }; // W; Instantaneous power
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "CE",        3600, "C",     "", "", 0, st }; // mAh; Consumed Amp Hours
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "SOC",          1, "ratio", "", "", 0, st }; // 1/10 %; State-of-charge
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "TTG",      60000, "s",     "", "", 0, st }; // min; Time-to-go
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "Alarm",       -1, "state", "", "", 0, st }; // Alarm (ON/OFF)
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "Relay",       -1, "state", "", "", 0, st }; // Relay (ON/OFF)
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "AR",           0, "",      "", "", 0, st }; // Alarm reason
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "H1",        3600, "C",     "", "", 0, st }; // mAh; Depth of the deepest discharge
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "H2",        3600, "C",     "", "", 0, st }; // mAh; Depth of the last discharge
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "H3",        3600, "C",     "", "", 0, st }; // mAh; Depth of the average discharge
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "H4",        1000, "count", "", "", 0, st }; // Number of charge cycles
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "H5",        1000, "count", "", "", 0, st }; // Number of full discharges
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "H6",        3600, "C",     "", "", 0, st }; // mAh; Cumulative Amp Hours drawn
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "H7",           1, "V",     "", "", 0, st }; // mV; Minimum main (battery) voltage
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "H8",           1, "V",     "", "", 0, st }; // mV; Maximum main (battery) voltage
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "H9",        1000, "s",     "", "", 0, st }; // s; Number of seconds since last full charge
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "H10",       1000, "count", "", "", 0, st }; // Number of automatic synchronizations
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "H11",       1000, "count", "", "", 0, st }; // Number of low main voltage alarms
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "H12",       1000, "count", "", "", 0, st }; // Number of high main voltage alarms
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "H13",       1000, "count", "", "", 0, st }; // Number of low auxiliary voltage alarms
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "H14",       1000, "count", "", "", 0, st }; // Number of high auxiliary voltage alarms
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "H15",          1, "V",     "", "", 0, st }; // mV; Minimum auxiliary (battery) voltage
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "H16",          1, "V",     "", "", 0, st }; // mV; Maximum auxiliary (battery) voltage
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "H17",      36000, "J",     "", "", 0, st }; // 10 Wh; Amount of discharged energy
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "H18",      36000, "J",     "", "", 0, st }; // 10 Wh; Amount of charged energy
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "H19",      36000, "J",     "", "", 0, st }; // 10 Wh; Yield total (user resettable counter)
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "H20",      36000, "J",     "", "", 0, st }; // 10 Wh; Yield today
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "H21",       1000, "W",     "", "", 0, st }; // W; Maximum power today
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "H22",      36000, "J",     "", "", 0, st }; // 10 Wh; Yield yesterday
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "H23",       1000, "W",     "", "", 0, st }; // W; Maximum power yesterday
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "ERR",           0, "",      "", "", 0, st }; // Error code
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "CS",            0, "",      "", "", 0, st }; // State of operation
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "BMV",          0, "",      "", "", 0, st }; // Model description (deprecated)
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "FW",           0, "",      "", "", 0, st }; // Firmware version
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "PID",          0, "",      "", "", 0, st }; // Product ID
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "SER#",         0, "",      "", "", 0, st }; // Serial number
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "HSDS",         0, "",      "", "", 0, st }; // Day sequence number (0..364)
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "MODE",         0, "",      "", "", 0, st }; // Device mode
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "AC_OUT_V",   100, "V",     "", "", 0, st }; // 0.01 V; AC output voltage
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "AC_OUT_I",   100, "V",     "", "", 0, st }; // 0.1 A; AC output current
-  this->VEDirectData[ii++] =
-    (VEDirectFieldEntry){ "WARN",      1000, "",      "", "", 0, st }; // Warning reason
-  
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "V",            1, "V",     "", "", 0, st, &this->data.mainVoltage }; // mV; Main (battery) voltage
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "VS",           1, "V",     "", "", 0, st, &this->data.auxVoltage }; // mV; Auxiliary (starter) voltage
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "VM",           1, "V",     "", "", 0, st, &this->data.midPointVoltage }; // mV; Mid-point voltage of the battery bank
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "DM",           1, "ratio", "", "", 0, st, &this->data.midPointDeviation }; // 1/10 %; Mid-point deviation of the battery bank
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "VPV",          1, "V",     "", "", 0, st, &this->data.panelVoltage }; // mV; Panel voltage
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "PPV",          1, "A",     "", "", 0, st, &this->data.panelPower }; // W; Panel power
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "I",            1, "A",     "", "", 0, st, &this->data.batteryCurrent }; // mA; Battery current
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "IL",           1, "A",     "", "", 0, st, &this->data.loadCurrent }; // mA; Load current
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "LOAD",        -1, "state", "", "", 0, st, &this->data.loadOutputState }; // Load output state (ON/OFF)
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "T",         -273, "K",     "", "", 0, st, &this->data.batteryTemperature }; // °C; Battery temperature
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "P",         1000, "W",     "", "", 0, st, &this->data.instantaneousPower }; // W; Instantaneous power
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "CE",        3600, "C",     "", "", 0, st, &this->data.consumedCoulombs }; // mAh; Consumed Amp Hours
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "SOC",          1, "ratio", "", "", 0, st, &this->data.stateOfCharge }; // 1/10 %; State-of-charge
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "TTG",      60000, "s",     "", "", 0, st, &this->data.timeToGo }; // min; Time-to-go
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "Alarm",       -1, "state", "", "", 0, st, &this->data.alarmState }; // Alarm (ON/OFF)
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "Relay",       -1, "state", "", "", 0, st, &this->data.relayState }; // Relay (ON/OFF)
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "AR",           0, "",      "", "", 0, st, &this->data.alarmReason }; // Alarm reason
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "H1",        3600, "C",     "", "", 0, st, &this->data.depthOfDeepestDischarge }; // mAh; Depth of the deepest discharge
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "H2",        3600, "C",     "", "", 0, st, &this->data.depthOfLastDischarge }; // mAh; Depth of the last discharge
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "H3",        3600, "C",     "", "", 0, st, &this->data.depthOfAverageDischarge }; // mAh; Depth of the average discharge
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "H4",          -2, "count", "", "", 0, st, &this->data.totalChargeCycles }; // Number of charge cycles
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "H5",          -2, "count", "", "", 0, st, &this->data.totalFullCycles }; // Number of full discharges
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "H6",        3600, "C",     "", "", 0, st, &this->data.cumulativeCoulombsDrawn }; // mAh; Cumulative Amp Hours drawn
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "H7",           1, "V",     "", "", 0, st, &this->data.minimumMainVoltage }; // mV; Minimum main (battery) voltage
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "H8",           1, "V",     "", "", 0, st, &this->data.maximumMainVoltage }; // mV; Maximum main (battery) voltage
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "H9",        1000, "s",     "", "", 0, st, &this->data.timeSinceLastFullCharge }; // s; Number of seconds since last full charge
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "H10",         -2, "count", "", "", 0, st, &this->data.totalAutomaticSynchronizations }; // Number of automatic synchronizations
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "H11",         -2, "count", "", "", 0, st, &this->data.totalLowMainVoltageAlarms }; // Number of low main voltage alarms
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "H12",         -2, "count", "", "", 0, st, &this->data.totalHighMainVoltageAlarms }; // Number of high main voltage alarms
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "H13",         -2, "count", "", "", 0, st, &this->data.totalLowAuxVoltageAlarms}; // Number of low auxiliary voltage alarms
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "H14",         -2, "count", "", "", 0, st, &this->data.totalHighAuxVoltageAlarms }; // Number of high auxiliary voltage alarms
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "H15",          1, "V",     "", "", 0, st, &this->data.minimumAuxVoltage }; // mV; Minimum auxiliary (battery) voltage
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "H16",          1, "V",     "", "", 0, st, &this->data.maximumAuxVoltage }; // mV; Maximum auxiliary (battery) voltage
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "H17",      36000, "J",     "", "", 0, st, &this->data.dischargedEnergy }; // 10 Wh; Amount of discharged energy
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "H18",      36000, "J",     "", "", 0, st, &this->data.chargedEnergy }; // 10 Wh; Amount of charged energy
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "H19",      36000, "J",     "", "", 0, st, &this->data.totalYield }; // 10 Wh; Yield total (user resettable counter)
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "H20",      36000, "J",     "", "", 0, st, &this->data.todaysYield }; // 10 Wh; Yield today
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "H21",       1000, "W",     "", "", 0, st, &this->data.todaysMaximumPower }; // W; Maximum power today
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "H22",      36000, "J",     "", "", 0, st, &this->data.yesterdaysYield }; // 10 Wh; Yield yesterday
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "H23",       1000, "W",     "", "", 0, st, &this->data.yesterdaysMaximumPower }; // W; Maximum power yesterday
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "ERR",          0, "",      "", "", 0, st, &this->data.errorCode }; // Error code
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "CS",           0, "",      "", "", 0, st, &this->data.stateOfOperation }; // State of operation
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "BMV",          0, "",      "", "", 0, st, &this->data.modelDescription }; // Model description (deprecated)
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "FW",           0, "",      "", "", 0, st, &this->data.firmwareVersion }; // Firmware version
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "PID",          0, "",      "", "", 0, st, &this->data.productID }; // Product ID
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "SER#",         0, "",      "", "", 0, st, &this->data.serialNumber }; // Serial number
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "HSDS",        -2, "",      "", "", 0, st, &this->data.daySequenceNumber }; // Day sequence number (0..364)
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "MODE",         0, "",      "", "", 0, st, &this->data.deviceMode }; // Device mode
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "AC_OUT_V",   100, "V",     "", "", 0, st, &this->data.acOutputVoltage }; // 0.01 V; AC output voltage
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "AC_OUT_I",   100, "V",     "", "", 0, st, &this->data.acOutputCurrent }; // 0.1 A; AC output current
+  this->VEDirectFields[ii++] =
+    (VEDirectFieldEntry){ "WARN",         0, "",      "", "", 0, st, &this->data.warningReason }; // Warning reason
+
   load_configuration();
 }
 
@@ -148,7 +292,7 @@ void VEDirectInput::clearValueBuffer() {
 // determine the array index of the VE.Direct entries
 byte VEDirectInput::getVEDirectIndex(const char * label) {
   for (byte ii = 0; ii < VEDIRECT_TOTAL_LABELS; ii++) {
-    if (strcmp(label, this->VEDirectData[ii].label) == 0)
+    if (strcmp(label, this->VEDirectFields[ii].label) == 0)
       return ii;
   }
   return -1;
@@ -170,9 +314,9 @@ void VEDirectInput::processField() {
   byte index = this->getVEDirectIndex(this->fieldLabel);
   if (index >= 0) {
     // record value as dirty
-    this->VEDirectData[index].status = VEDIRECT_VALUE_STATE_DATA_DIRTY;
-    this->VEDirectData[index].lastupdate = millis();
-    strncpy(this->VEDirectData[index].valuePending, this->fieldValue, VEDIRECT_BUF_VALUE_SIZE);
+    this->VEDirectFields[index].status = VEDIRECT_VALUE_STATE_DATA_DIRTY;
+    this->VEDirectFields[index].lastupdate = millis();
+    strncpy(this->VEDirectFields[index].valuePending, this->fieldValue, VEDIRECT_BUF_VALUE_SIZE);
   } else {
     // debugD("ERROR: invalid label: %s", this->fieldLabel);
   }
@@ -181,44 +325,74 @@ void VEDirectInput::processField() {
 // propagate valid fields to output buffer
 void VEDirectInput::commit() {
   for(byte ii = 0; ii < VEDIRECT_TOTAL_LABELS; ii++) {
-    if (this->VEDirectData[ii].status == VEDIRECT_VALUE_STATE_DATA_DIRTY) {
-      this->VEDirectData[ii].status = VEDIRECT_VALUE_STATE_DATA_VALID;
+    if (this->VEDirectFields[ii].status == VEDIRECT_VALUE_STATE_DATA_DIRTY) {
+      this->VEDirectFields[ii].status = VEDIRECT_VALUE_STATE_DATA_VALID;
       if (this->mode_signalKUnitTransform == 0) {
         // literal output, no SignalK unit transformation
-        strncpy(VEDirectData[ii].valueConfirmed, VEDirectData[ii].valuePending, VEDIRECT_BUF_VALUE_SIZE);
+        strncpy(VEDirectFields[ii].valueConfirmed, VEDirectFields[ii].valuePending, VEDIRECT_BUF_VALUE_SIZE);
       } else {
         // "---" raw values indicate invalid/irrelevant data, ignore
-        if (strcmp(VEDirectData[ii].valuePending, "---") == 0)
+        if (strcmp(VEDirectFields[ii].valuePending, "---") == 0)
           continue;
 
-        if (this->VEDirectData[ii].unit_transform_factor > 0) {
+        if (this->VEDirectFields[ii].unit_transform_factor > 0) {
           // unit conversion
           float value;
-          value = (atof(VEDirectData[ii].valuePending) * this->VEDirectData[ii].unit_transform_factor) / 1000;
-          sprintf(VEDirectData[ii].valueConfirmed, "%.3f", value);
-        } else if (this->VEDirectData[ii].unit_transform_factor == 0) {
+          value = (atof(VEDirectFields[ii].valuePending) * this->VEDirectFields[ii].unit_transform_factor) / 1000;
+          sprintf(VEDirectFields[ii].valueConfirmed, "%.3f", value);
+
+          // update SignalK data record
+          VEDirectFields[ii].floatValue->set(value);
+
+        } else if (this->VEDirectFields[ii].unit_transform_factor == 0) {
           // literal output
-          strncpy(VEDirectData[ii].valueConfirmed, VEDirectData[ii].valuePending, VEDIRECT_BUF_VALUE_SIZE);
-        } else if (this->VEDirectData[ii].unit_transform_factor == -1) {
+          strncpy(VEDirectFields[ii].valueConfirmed, VEDirectFields[ii].valuePending, VEDIRECT_BUF_VALUE_SIZE);
+
+          // update SignalK data record
+          VEDirectFields[ii].stringValue->set(VEDirectFields[ii].valueConfirmed);
+
+        } else if (this->VEDirectFields[ii].unit_transform_factor == -1) {
           // binary state, convert to 0/1
-          if (strncmp(VEDirectData[ii].valuePending, "ON", 2) == 0) {
-            strncpy(VEDirectData[ii].valueConfirmed, "1", VEDIRECT_BUF_VALUE_SIZE);
-          } else if (strncmp(VEDirectData[ii].valuePending, "OFF", 3) == 0) {
-            strncpy(VEDirectData[ii].valueConfirmed, "0", VEDIRECT_BUF_VALUE_SIZE);
+          if (strncmp(VEDirectFields[ii].valuePending, "ON", 2) == 0) {
+            strncpy(VEDirectFields[ii].valueConfirmed, "1", VEDIRECT_BUF_VALUE_SIZE);
+
+            // update SignalK data record
+            VEDirectFields[ii].intValue->set(1);
+
+          } else if (strncmp(VEDirectFields[ii].valuePending, "OFF", 3) == 0) {
+            strncpy(VEDirectFields[ii].valueConfirmed, "0", VEDIRECT_BUF_VALUE_SIZE);
+
+            // update SignalK data record
+            VEDirectFields[ii].intValue->set(0);
+
           } else {
-            sprintf(VEDirectData[ii].valueConfirmed, "invalid: -%s-", VEDirectData[ii].valuePending);
+            sprintf(VEDirectFields[ii].valueConfirmed, "invalid: -%s-", VEDirectFields[ii].valuePending);
           }
-        } else if (this->VEDirectData[ii].unit_transform_factor == -273) {
+        } else if (this->VEDirectFields[ii].unit_transform_factor == -2) {
+          // int conversion
+          int value;
+          value = atoi(VEDirectFields[ii].valuePending);
+          strncpy(VEDirectFields[ii].valueConfirmed, VEDirectFields[ii].valuePending, VEDIRECT_BUF_VALUE_SIZE);
+
+          // update SignalK data record
+          VEDirectFields[ii].intValue->set(value);
+
+        } else if (this->VEDirectFields[ii].unit_transform_factor == -273) {
           // °C to K converstion
           float value;
-          value = atof(VEDirectData[ii].valuePending) + 273.15;
-          sprintf(VEDirectData[ii].valueConfirmed, "%.2f", value);
+          value = atof(VEDirectFields[ii].valuePending) + 273.15;
+          sprintf(VEDirectFields[ii].valueConfirmed, "%.2f", value);
+
+          // update SignalK data record
+          VEDirectFields[ii].floatValue->set(value);
+
         } else
-        // default to literal output (should not happen)
-          strncpy(VEDirectData[ii].valueConfirmed, VEDirectData[ii].valuePending, VEDIRECT_BUF_VALUE_SIZE);
+        // default to literal output (should not happen, don't update sk data)
+          strncpy(VEDirectFields[ii].valueConfirmed, VEDirectFields[ii].valuePending, VEDIRECT_BUF_VALUE_SIZE);
       }
     }
   }
+  this->notify();
 }
 
 // register handlers
@@ -241,7 +415,10 @@ void VEDirectInput::enable() {
             break;
           case VEDIRECT_RX_STATE_VALUE:
             if (c != '\n') {
-              this->fieldValue[this->rxBufIndex++] = c;
+              // string values may contain \r\n instead of the documented \n, ignore the return
+              if (c != '\r')
+                this->fieldValue[this->rxBufIndex] = c;
+              this->rxBufIndex++;
             } else {
               // end of field
               this->receiveState = VEDIRECT_RX_STATE_RECORDCOMPLETE;
@@ -267,15 +444,17 @@ void VEDirectInput::enable() {
 
 
   #ifndef DEBUG_DISABLED
+  #if 0
   app.onRepeat(5000, [this](){
     debugD("VE.Direct data");
     for (byte ii = 0; ii < VEDIRECT_TOTAL_LABELS; ii++) {
       // dump all data fields ever seen from this device
-      if (this->VEDirectData[ii].status != VEDIRECT_VALUE_STATE_UNDEFINED) {
-        debugD("%s: %s (%lu ms)", this->VEDirectData[ii].label, this->VEDirectData[ii].valueConfirmed, millis() - this->VEDirectData[ii].lastupdate);
+      if (this->VEDirectFields[ii].status != VEDIRECT_VALUE_STATE_UNDEFINED) {
+        debugD("%s: %s (%lu ms)", this->VEDirectFields[ii].label, this->VEDirectFields[ii].valueConfirmed, millis() - this->VEDirectFields[ii].lastupdate);
       }
     }
   });
+  #endif
   #endif
 }
 
